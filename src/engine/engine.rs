@@ -7,10 +7,9 @@ use std::{
     time::Duration,
 };
 
-use crate::Result;
 use crate::{
     engine::{cache::Cache, forwarder::packet_forwarder},
-    types::MTU_SIZE,
+    types::{CONNECTION_CLOSED, DEFAULT_CONNECTION_TIMEOUT_IN_SECS, MTU_SIZE},
 };
 use crate::{
     engine::{reassembler::reassemble_packets, receiver::recv_mmsg},
@@ -19,6 +18,7 @@ use crate::{
         RAPTOR_DECODER_CACHE_TTL_IN_SECS,
     },
 };
+use crate::{types::NUMBER_OF_NETWORK_PACKETS, Result};
 
 use crate::engine::{generate_batch_id, split_into_packets};
 use bytes::Bytes;
@@ -34,12 +34,12 @@ use tracing::{debug, error, info};
 
 #[derive(Debug)]
 pub struct Engine {
-    pub peer_connection_list: HashMap<SocketAddr, Connection>,
-    pub raptor_list: HashSet<SocketAddr>,
+    peer_connection_list: HashMap<SocketAddr, Connection>,
+    raptor_list: HashSet<SocketAddr>,
     endpoint: Endpoint,
     conn_rx: IncomingConnectionsReceiver,
-    pub raptor_udp_port: u16,
-    pub raptor_num_packet_blast: usize,
+    raptor_udp_port: u16,
+    raptor_num_packet_blast: usize,
 }
 
 pub type ConnectionApiPair = (Connection, ConnectionIncoming);
@@ -48,25 +48,46 @@ pub type ConnectionApiPair = (Connection, ConnectionIncoming);
 pub struct EngineConfig {
     pub addr: SocketAddr,
     pub known_peers: Vec<SocketAddr>,
+    pub peer_connection_list: HashMap<SocketAddr, Connection>,
+    pub raptor_list: HashSet<SocketAddr>,
+    pub raptor_num_packet_blast: usize,
+    pub raptor_udp_port: u16,
+}
+
+impl Default for EngineConfig {
+    fn default() -> Self {
+        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+
+        Self {
+            addr,
+            // TODO: merge known_peers, peer_connection_list and raptor_list into a single
+            // entity
+            known_peers: Default::default(),
+            peer_connection_list: Default::default(),
+            raptor_list: Default::default(),
+
+            raptor_num_packet_blast: NUMBER_OF_NETWORK_PACKETS,
+            raptor_udp_port: Default::default(),
+        }
+    }
+}
+
+impl EngineConfig {
+    //
 }
 
 impl Engine {
     pub async fn new(config: EngineConfig) -> Result<Self> {
-        let (
-            //
-            endpoint,
-            conn_rx,
-            _,
-        ) = Self::new_endpoint(config.addr, &config.known_peers).await?;
+        let (endpoint, conn_rx, _) = Self::new_endpoint(config.addr, &config.known_peers).await?;
 
         // TODO: fix these
         Ok(Self {
-            peer_connection_list: todo!(),
-            raptor_list: todo!(),
+            peer_connection_list: config.peer_connection_list,
+            raptor_list: config.raptor_list,
             endpoint,
             conn_rx,
-            raptor_udp_port: todo!(),
-            raptor_num_packet_blast: todo!(),
+            raptor_udp_port: config.raptor_udp_port,
+            raptor_num_packet_blast: config.raptor_num_packet_blast,
         })
     }
 
@@ -93,6 +114,67 @@ impl Engine {
         Ok((endpoint, incoming_connections_receiver, conn_opts))
     }
 
+    pub fn public_addr(&self) -> SocketAddr {
+        self.endpoint.public_addr()
+    }
+
+    /// This function removes a peer connection from the peer connection list
+    ///
+    /// Arguments:
+    ///
+    /// * `address`: The address of the peer to be removed.
+    #[tracing::instrument]
+    pub fn remove_peer_connections(&mut self, addresses: Vec<SocketAddr>) -> Result<()> {
+        for addr in addresses.iter() {
+            self.peer_connection_list.retain(|address, connection| {
+                info!("closed connection with: {addr}");
+                connection.close(Some(String::from(CONNECTION_CLOSED)));
+                address != addr
+            });
+        }
+
+        Ok(())
+    }
+
+    /// This function takes a vector of socket addresses and attempts to
+    /// connect to each one. If the
+    /// connection is successful, it adds the connection to the peer connection
+    /// list
+    ///
+    /// Arguments:
+    ///
+    /// * `address`: A vector of SocketAddr, which is the address of the peer
+    ///   you want to connect to.
+    #[tracing::instrument]
+    pub async fn add_peer_connections(&mut self, addresses: Vec<SocketAddr>) -> Result<()> {
+        for addr in addresses.iter() {
+            let connection_result = self.endpoint.connect_to(addr).timeout().await;
+
+            match connection_result {
+                Ok(con_result) => {
+                    let (connection, _) = con_result.map_err(|err| {
+                        error!("Failed to connect with {addr}: {err}");
+
+                        DyswarmError::Connection(err)
+                    })?;
+
+                    self.peer_connection_list
+                        .insert(addr.to_owned(), connection);
+                }
+                Err(e) => {
+                    error!("Connection error {addr}: {e}");
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    #[tracing::instrument]
+    pub fn add_raptor_peers(&mut self, address: Vec<SocketAddr>) {
+        self.raptor_list.extend(address)
+    }
+
     #[tracing::instrument]
     pub async fn send_data_via_quic(&self, message_bytes: Bytes, addr: SocketAddr) -> Result<()> {
         let endpoint = self.endpoint.clone();
@@ -107,20 +189,16 @@ impl Engine {
     }
 
     #[tracing::instrument]
-    pub async fn quic_broadcast(
-        &self,
-        peer_connection_list: BTreeMap<SocketAddr, Connection>,
-        message_bytes: Bytes,
-    ) -> crate::types::Result<()> {
+    pub async fn quic_broadcast(&self, message_bytes: Bytes) -> crate::types::Result<()> {
         let mut set = JoinSet::new();
 
-        if peer_connection_list.is_empty() {
+        if self.peer_connection_list.is_empty() {
             return Err(DyswarmError::NoPeers);
         }
 
         let byte_len = message_bytes.len();
 
-        for (addr, conn) in peer_connection_list.into_iter() {
+        for (addr, conn) in self.peer_connection_list.clone().into_iter() {
             let message_bytes = message_bytes.clone();
 
             set.spawn(async move {
@@ -157,7 +235,6 @@ impl Engine {
         message_bytes: Bytes,
         erasure_count: u32,
         udp_socket: UdpSocket,
-        raptor_list: HashSet<SocketAddr>,
     ) -> Result<()> {
         info!("broadcasting from {:?}", &udp_socket);
 
@@ -169,7 +246,7 @@ impl Engine {
 
         let udp_socket = Arc::new(udp_socket);
 
-        if raptor_list.is_empty() {
+        if self.raptor_list.is_empty() {
             return Err(DyswarmError::NoPeers);
         }
 
@@ -178,7 +255,8 @@ impl Engine {
         for (packet_index, packet) in chunks.iter().enumerate() {
             let socket = socket.clone();
 
-            let addresses = self.get_address_for_packet_shards(packet_index, raptor_list.len());
+            let addresses =
+                self.get_address_for_packet_shards(packet_index, self.raptor_list.clone());
 
             for address in addresses.into_iter() {
                 let packet = packet.clone();
@@ -247,17 +325,17 @@ impl Engine {
             Cache::new(RAPTOR_DECODER_CACHE_LIMIT, RAPTOR_DECODER_CACHE_TTL_IN_SECS);
 
         thread::spawn({
-            let assemble_send = reassembler_channel_tx.clone();
-            let fwd_send = forwarder_tx.clone();
-            let batch_send = batch_sender.clone();
+            let assemble_tx = reassembler_channel_tx.clone();
+            let fwd_tx = forwarder_tx.clone();
+            let batch_tx = batch_sender.clone();
 
             move || {
                 reassemble_packets(
                     reassembler_channel_rx,
                     &mut batch_id_store,
                     &mut decoder_hash_cache,
-                    fwd_send.clone(),
-                    batch_send.clone(),
+                    fwd_tx.clone(),
+                    batch_tx.clone(),
                 );
 
                 // TODO: refactor these drops
@@ -272,7 +350,7 @@ impl Engine {
             return Err(DyswarmError::NoPeers);
         }
 
-        self.raptor_list
+        raptor_list
             .iter()
             .for_each(|addr| nodes_ips_except_self.push(addr.to_string().as_bytes().to_vec()));
 
@@ -307,6 +385,7 @@ impl Engine {
             )
         });
 
+        // TODO: implement stop condition
         loop {
             let mut receive_buffers = [buf; NUM_RCVMMSGS];
             // Receiving a batch of packets from the socket.
@@ -334,11 +413,12 @@ impl Engine {
     fn get_address_for_packet_shards(
         &self,
         packet_index: usize,
-        total_peers: usize,
+        raptor_list: HashSet<SocketAddr>,
     ) -> Vec<SocketAddr> {
+        let total_peers = raptor_list.len();
         let mut addresses = Vec::new();
         let number_of_peers = (total_peers as f32 * 0.10).ceil() as usize;
-        let raptor_list_cloned: Vec<&SocketAddr> = self.raptor_list.iter().collect();
+        let raptor_list_cloned: Vec<&SocketAddr> = raptor_list.iter().collect();
 
         for i in 0..number_of_peers {
             if let Some(address) = raptor_list_cloned.get(packet_index % (total_peers + i)) {
@@ -348,5 +428,18 @@ impl Engine {
         }
 
         addresses
+    }
+}
+
+pub trait Timeout: Sized {
+    fn timeout(self) -> tokio::time::Timeout<Self>;
+}
+
+impl<F: std::future::Future> Timeout for F {
+    fn timeout(self) -> tokio::time::Timeout<Self> {
+        tokio::time::timeout(
+            Duration::from_secs(DEFAULT_CONNECTION_TIMEOUT_IN_SECS),
+            self,
+        )
     }
 }

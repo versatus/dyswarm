@@ -7,12 +7,13 @@ use crate::types::constants::MessageId;
 
 /// The Message struct contains the basic data contained in a message
 /// sent across the network. This can be packed into bytes.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Message<D>
 where
     D: Default + Debug + Clone,
 {
     pub id: MessageId,
+    pub timestamp: i64,
     pub data: D,
 }
 
@@ -21,8 +22,10 @@ where
     D: Default + Debug + Clone,
 {
     fn default() -> Self {
+        let timestamp = chrono::offset::Utc::now().timestamp();
         Self {
             id: Uuid::nil(),
+            timestamp,
             data: Default::default(),
         }
     }
@@ -44,8 +47,10 @@ where
 {
     /// Generate a new Message, identified with an UUID v4
     pub fn new(data: D) -> Self {
+        let timestamp = chrono::offset::Utc::now().timestamp();
         Message {
             id: Uuid::new_v4(),
+            timestamp,
             data,
         }
     }
@@ -54,6 +59,7 @@ where
     pub fn nil() -> Message<D> {
         Message {
             id: uuid::Uuid::nil(),
+            timestamp: 0,
             data: D::default(),
         }
     }
@@ -91,12 +97,24 @@ where
     }
 }
 
+impl<D> From<Bytes> for Message<D>
+where
+    D: Default + Debug + Clone + Serialize + DeserializeOwned,
+{
+    fn from(bytes: Bytes) -> Self {
+        let vec_bytes = bytes.to_vec();
+        Message::from(vec_bytes)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::Message;
+
     fn test_message() {
-        let msg = super::Message::new("Hello World");
+        let msg = Message::new("Hello World");
         let bytes: Vec<u8> = msg.into();
-        let msg: super::Message<String> = bytes.into();
+        let msg: Message<String> = bytes.into();
         assert_eq!(msg.data, "Hello World");
     }
 }

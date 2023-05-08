@@ -95,11 +95,12 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_entry_cache() {
+    fn test_remove_cache_entry() {
         let mut cache = Cache::new(10, 100);
         struct Abc {
             _a: i16,
         }
+
         cache.push("Hello_str", Abc { _a: 1i16 });
         assert!(cache.contains(&"Hello_str"));
         cache.remove(&"Hello_str");

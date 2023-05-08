@@ -1,3 +1,3 @@
-use crate::types::config::BroadcastError;
+use crate::types::config::DyswarmError;
 
-pub type Result<T> = std::result::Result<T, BroadcastError>;
+pub type Result<T> = std::result::Result<T, DyswarmError>;

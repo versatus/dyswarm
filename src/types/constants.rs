@@ -20,6 +20,7 @@ pub const NUMBER_OF_NETWORK_PACKETS: usize = 32;
 pub const DEFAULT_CONNECTION_TIMEOUT_IN_SECS: u64 = 2;
 pub const RAPTOR_DECODER_CACHE_LIMIT: usize = 10000;
 pub const RAPTOR_DECODER_CACHE_TTL_IN_SECS: u64 = 1800000;
+pub const CONNECTION_CLOSED: &str = "The connection was closed intentionally by qp2p.";
 
 pub type ByteVec = Vec<u8>;
 pub type ByteSlice<'a> = &'a [u8];
