@@ -111,7 +111,8 @@ where
 mod tests {
     use super::Message;
 
-    fn test_message() {
+    #[test]
+    fn test_message_serde() {
         let msg = Message::new("Hello World");
         let bytes: Vec<u8> = msg.into();
         let msg: Message<String> = bytes.into();
