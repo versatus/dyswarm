@@ -1,6 +1,5 @@
-use std::{fmt, net::SocketAddr};
-
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 
 /// The unit of time within VRRB.
 /// It lasts for some number

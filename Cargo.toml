@@ -11,7 +11,6 @@ serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
 tokio = { version = "1.28.0", features = ["full"] }
 udp2p = { git = "https://github.com/ASmithOWL/udp2p" }
-theater = { git = "https://github.com/vrrb-io/theater" }
 sha256 = "1.1.1"
 rand = { version = "0.8.5", features = ["std"] }
 thiserror = "1.0"
@@ -25,3 +24,4 @@ qp2p = "0.30.0"
 hex = "0.4.3"
 lru_time_cache = "0.11.11"
 async-trait = "0.1.68"
+chrono = { version = "0.4.24", features = ["serde"] }
