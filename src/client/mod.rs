@@ -1,24 +1,28 @@
 use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, HashSet},
     fmt::Debug,
-    marker::PhantomData,
-    net::SocketAddr,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
 use crate::{
     engine::engine::{Engine, EngineConfig},
-    types::{BroadcastError, DyswarmError, Message, Result},
+    types::{DyswarmError, Message, Result},
 };
 use bytes::Bytes;
 use qp2p::Connection;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::{net::UdpSocket, task::JoinSet};
-use tracing::{error, info};
+use tokio::net::UdpSocket;
 
 #[derive(Debug)]
 pub struct Config {
     pub addr: SocketAddr,
-    pub known_peers: Vec<SocketAddr>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+        Self { addr }
+    }
 }
 
 #[derive(Debug)]
@@ -75,9 +79,7 @@ impl Client {
     {
         // Either call quic_broadcast or unreliable_broadcast
         if args.config.unreliable {
-            let addr = "127.0.0.1:0".parse::<SocketAddr>().map_err(|err| {
-                DyswarmError::Other("Unable to parse address for unreliable broadcast".to_string())
-            })?;
+            let addr = self.config.addr;
 
             self.unreliable_broadcast(args.message, args.erasure_count, addr)
                 .await
