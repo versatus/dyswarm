@@ -8,11 +8,11 @@ use std::{
 };
 
 use crate::{
-    engine::{cache::Cache, forwarder::packet_forwarder},
+    internal::{cache::Cache, forwarder::packet_forwarder},
     types::{CONNECTION_CLOSED, DEFAULT_CONNECTION_TIMEOUT_IN_SECS, MTU_SIZE},
 };
 use crate::{
-    engine::{reassembler::reassemble_packets, receiver::recv_mmsg},
+    internal::{reassembler::reassemble_packets, receiver::recv_mmsg},
     types::{
         DyswarmError, BATCH_ID_SIZE, NUM_RCVMMSGS, RAPTOR_DECODER_CACHE_LIMIT,
         RAPTOR_DECODER_CACHE_TTL_IN_SECS,
@@ -20,7 +20,7 @@ use crate::{
 };
 use crate::{types::NUMBER_OF_NETWORK_PACKETS, Result};
 
-use crate::engine::{generate_batch_id, split_into_packets};
+use crate::internal::{generate_batch_id, split_into_packets};
 use bytes::Bytes;
 use crossbeam_channel::{unbounded, Sender};
 pub use qp2p::{

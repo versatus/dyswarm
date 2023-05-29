@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    engine::engine::Engine,
+    internal::engine::Engine,
     server::handler::Handler,
     types::{DyswarmError, Message},
     Result,

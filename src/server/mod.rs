@@ -10,7 +10,7 @@ mod tests {
 
     use crate::{
         client::{Client, Config},
-        engine::{Engine, EngineConfig},
+        internal::{Engine, EngineConfig},
         types::Message,
         Result,
     };

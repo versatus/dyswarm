@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    engine::engine::{Engine, EngineConfig},
+    internal::{Engine, EngineConfig},
     types::{DyswarmError, Message, Result},
 };
 use bytes::Bytes;

@@ -13,7 +13,7 @@ mod tests {
     use super::engine::*;
     use bytes::Bytes;
 
-    use crate::engine::{Engine, Timeout};
+    use crate::internal::{Engine, Timeout};
     use crate::types::message::Message;
 
     #[tokio::test]

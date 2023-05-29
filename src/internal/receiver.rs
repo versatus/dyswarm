@@ -1,19 +1,10 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
-use std::{collections::HashSet, io::Read, str};
 
-// use block::Block;
-use crate::engine::cache::Cache;
-use crate::types::constants::BATCH_ID_SIZE;
 use crate::types::constants::NUM_RCVMMSGS;
 use crate::types::Result;
-use crate::types::PAYLOAD_SIZE;
-use bytes::Bytes;
-use crossbeam_channel::{Receiver, Sender};
-use rand::{distributions::Alphanumeric, thread_rng, Rng, RngCore};
-use raptorq::{Decoder, Encoder, EncodingPacket, ObjectTransmissionInformation};
 use tokio::net::UdpSocket;
-use tracing::{debug, error, info};
+use tracing::error;
+
 // NOTE: For Linux we can use system call from libc::recv_mmsg
 
 /// It receives a UDP packet from a socket, and
