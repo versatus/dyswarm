@@ -17,7 +17,6 @@ use tracing::error;
 /// * `packets`: a mutable array of byte arrays, each of which is the size of
 ///   the largest packet you
 /// want to receive.
-//#[cfg(not(target_os = "linux"))]
 pub async fn recv_mmsg(
     socket: &UdpSocket,
     packets: &mut [[u8; 1280]],
