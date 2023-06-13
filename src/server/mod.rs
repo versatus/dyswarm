@@ -45,7 +45,7 @@ mod tests {
 
         assert_eq!(mess, message);
 
-        handle.stop();
+        handle.stop().await;
     }
 
     struct HandlerImpl {

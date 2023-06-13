@@ -44,6 +44,7 @@ impl Server {
                         // TODO: call handler.cleanup() here
                         //
                         tracing::info!("Server shutdown complete");
+                        return;
                     }
                     Some((_, mut conn_rx)) = self.engine.get_incoming_connections().next() => {
                         let res = conn_rx
@@ -70,7 +71,7 @@ impl Server {
         });
 
         let server_handle = ServerHandle {
-            _handle: handle,
+            handle,
             cancel_token,
         };
 
@@ -80,12 +81,15 @@ impl Server {
 
 #[derive(Debug)]
 pub struct ServerHandle {
-    _handle: JoinHandle<()>,
+    handle: JoinHandle<()>,
     cancel_token: CancellationToken,
 }
 
 impl ServerHandle {
-    pub fn stop(self) {
+    pub async fn stop(self) {
         self.cancel_token.cancel();
+        if let Err(err) = self.handle.await {
+            tracing::error!("Error stopping server: {:?}", err);
+        }
     }
 }
