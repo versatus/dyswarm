@@ -44,6 +44,7 @@ where
     pub config: BroadcastConfig,
     pub message: Message<D>,
     pub peer_list: BTreeMap<SocketAddr, Connection>,
+
     // TODO: merge both lists into one entity
     pub raptor_list: HashSet<SocketAddr>,
     pub erasure_count: u32,
