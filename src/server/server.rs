@@ -1,4 +1,7 @@
-use std::{fmt::Debug, net::SocketAddr};
+use std::{
+    fmt::Debug,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+};
 
 use bytes::Bytes;
 use serde::{de::DeserializeOwned, Serialize};
@@ -17,21 +20,39 @@ fn null_bytes() -> (Bytes, Bytes, Bytes) {
 }
 
 #[derive(Debug)]
+pub struct ServerConfig {
+    pub addr: SocketAddr,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+        Self { addr }
+    }
+}
+
+#[derive(Debug)]
 pub struct Server {
+    config: ServerConfig,
     engine: Engine,
 }
 
 impl Server {
-    pub async fn new() -> Result<Self> {
-        let engine_config = EngineConfig::default();
+    pub async fn new(config: ServerConfig) -> Result<Self> {
+        let engine_config = EngineConfig {
+            addr: config.addr,
+            ..Default::default()
+        };
+
         let engine = Engine::new(engine_config).await?;
 
-        Ok(Self { engine })
+        Ok(Self { config, engine })
     }
 
     /// Returns a new Dyswarm server with a custom p2p engine
     pub fn new_with_engine(engine: Engine) -> Self {
-        Self { engine }
+        let config = ServerConfig::default();
+        Self { config, engine }
     }
 
     /// Returns the public address the internal engine is listening to incomming connetctions on.

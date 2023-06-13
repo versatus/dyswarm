@@ -22,7 +22,8 @@ mod tests {
         let client_config = Config::default();
         let client = Client::new(client_config).await.unwrap();
 
-        let server = Server::new().await.unwrap();
+        let server_config = ServerConfig::default();
+        let server = Server::new(server_config).await.unwrap();
         let addr_1 = server.public_addr();
 
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
