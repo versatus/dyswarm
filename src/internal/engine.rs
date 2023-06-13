@@ -72,10 +72,6 @@ impl Default for EngineConfig {
     }
 }
 
-impl EngineConfig {
-    //
-}
-
 impl Engine {
     pub async fn new(config: EngineConfig) -> Result<Self> {
         let (endpoint, conn_rx, _) = Self::new_endpoint(config.addr, &config.known_peers).await?;
@@ -265,7 +261,9 @@ impl Engine {
                 set.spawn(async move {
                     let addr = address.to_string();
 
-                    socket.send_to(&packet, addr.clone()).await;
+                    if let Err(err) = socket.send_to(&packet, addr.clone()).await {
+                        error!("error: {err}");
+                    }
                 });
 
                 if set.len() >= self.raptor_num_packet_blast {

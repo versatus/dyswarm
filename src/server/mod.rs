@@ -19,15 +19,11 @@ mod tests {
 
     #[tokio::test]
     async fn should_handle_connections() {
-        let engine_config_1 = EngineConfig::default();
-
-        let engine_1 = Engine::new(engine_config_1).await.unwrap();
-        let addr_1 = engine_1.public_addr();
-
         let client_config = Config::default();
         let client = Client::new(client_config).await.unwrap();
 
-        let server = Server::new(engine_1);
+        let server = Server::new().await.unwrap();
+        let addr_1 = server.public_addr();
 
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 

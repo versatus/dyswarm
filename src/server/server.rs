@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, net::SocketAddr};
 
 use bytes::Bytes;
 use serde::{de::DeserializeOwned, Serialize};
@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    internal::engine::Engine,
+    internal::{engine::Engine, EngineConfig},
     server::handler::Handler,
     types::{DyswarmError, Message},
     Result,
@@ -22,10 +22,24 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(engine: Engine) -> Self {
+    pub async fn new() -> Result<Self> {
+        let engine_config = EngineConfig::default();
+        let engine = Engine::new(engine_config).await?;
+
+        Ok(Self { engine })
+    }
+
+    /// Returns a new Dyswarm server with a custom p2p engine
+    pub fn new_with_engine(engine: Engine) -> Self {
         Self { engine }
     }
 
+    /// Returns the public address the internal engine is listening to incomming connetctions on.
+    pub fn public_addr(&self) -> SocketAddr {
+        self.engine.public_addr()
+    }
+
+    /// Starts listening to network events and calls the provided handler.
     pub async fn run<H, D>(mut self, handler: H) -> Result<ServerHandle>
     where
         D: Debug + Default + Serialize + DeserializeOwned + Clone + Send,

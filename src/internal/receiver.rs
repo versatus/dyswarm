@@ -28,7 +28,7 @@ pub async fn recv_mmsg(
     for (i, packt) in packets.iter_mut().take(count).enumerate() {
         match socket.recv_from(packt).await {
             Err(err) => {
-                error!("Error occured while receiving packet :{:?}", err);
+                error!("Error occured while receiving packet: {:?}", err);
             }
             Ok((nrecv, from)) => {
                 received.push((i, nrecv, from));
@@ -39,9 +39,9 @@ pub async fn recv_mmsg(
     Ok(received)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PacketReceiver {
-    //
+    // TODO: develop further
 }
 
 impl PacketReceiver {
