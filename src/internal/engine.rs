@@ -133,9 +133,7 @@ impl Engine {
     }
 
     /// This function takes a vector of socket addresses and attempts to
-    /// connect to each one. If the
-    /// connection is successful, it adds the connection to the peer connection
-    /// list
+    /// connect to each one. If the connection is successful, it adds the connection to the peer connection list
     ///
     /// Arguments:
     ///

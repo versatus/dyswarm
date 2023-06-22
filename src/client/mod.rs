@@ -43,10 +43,6 @@ where
 {
     pub config: BroadcastConfig,
     pub message: Message<D>,
-    pub peer_list: BTreeMap<SocketAddr, Connection>,
-
-    // TODO: merge both lists into one entity
-    pub raptor_list: HashSet<SocketAddr>,
     pub erasure_count: u32,
 }
 
@@ -58,10 +54,12 @@ impl Client {
         Ok(Client { config, engine })
     }
 
+    /// Adds peers to the client's internal list of active peers
     pub async fn add_peers(&mut self, peers: Vec<SocketAddr>) -> Result<()> {
         self.engine.add_peer_connections(peers).await
     }
 
+    /// Removes peers from the client's internal list
     pub async fn remove_peers(&mut self, peers: Vec<SocketAddr>) -> Result<()> {
         self.engine.remove_peer_connections(peers)
     }
@@ -89,8 +87,7 @@ impl Client {
         }
     }
 
-    /// This function takes a message and sends it to all the peers in the
-    /// peer list
+    /// This function takes a message and sends it to all the peers in the peer list
     ///
     /// Arguments:
     ///
@@ -107,8 +104,7 @@ impl Client {
     }
 
     /// The function takes a message and an erasure count as input and splits
-    /// the message into packets
-    /// and sends them to the peers
+    /// the message into packets and sends them to the peers.
     ///
     /// Arguments:
     ///
