@@ -59,9 +59,28 @@ impl Client {
         self.engine.add_peer_connections(peers).await
     }
 
+    /// Adds raptor_peers
+    pub fn add_raptor_peers(&mut self, peers: Vec<SocketAddr>) {
+        self.engine.add_raptor_peers(peers)
+    }
+
     /// Removes peers from the client's internal list
-    pub async fn remove_peers(&mut self, peers: Vec<SocketAddr>) -> Result<()> {
+    pub fn remove_peers(&mut self, peers: Vec<SocketAddr>) -> Result<()> {
         self.engine.remove_peer_connections(peers)
+    }
+
+    /// This function returns a list of active peer connections as SocketAddr objects.
+    ///
+    /// Returns:
+    ///
+    /// A vector of `SocketAddr` representing the active peer connections in the network.
+    pub fn get_peer_connections(&self) -> Vec<SocketAddr> {
+        self.engine.get_active_peer_connections_list()
+    }
+
+    /// Clear peers list
+    pub fn clear_connection_list(&mut self) {
+        self.engine.clear_peer_connections_list()
     }
 
     /// This function takes a message and sends it to all the peers in the
