@@ -169,6 +169,22 @@ impl Engine {
         self.raptor_list.extend(address)
     }
 
+    /// This function returns a list of active peer connections as SocketAddr objects.
+    #[tracing::instrument]
+    pub fn get_active_peer_connections_list(&self) -> Vec<SocketAddr> {
+        self.peer_connection_list
+            .keys()
+            .cloned()
+            .collect::<Vec<SocketAddr>>()
+    }
+
+    /// This function clears the peer connection list and the Raptor list.
+    #[tracing::instrument]
+    pub fn clear_peer_connections_list(&mut self) {
+        self.peer_connection_list.clear();
+        self.raptor_list.clear();
+    }
+
     #[tracing::instrument]
     pub async fn send_data_via_quic(&self, message_bytes: Bytes, addr: SocketAddr) -> Result<()> {
         let endpoint = self.endpoint.clone();
