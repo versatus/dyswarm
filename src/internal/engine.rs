@@ -216,7 +216,7 @@ impl Engine {
 
                 match conn.send(msg).await {
                     Ok(_) => {
-                        info!("sent {byte_len} bytes to {addr}");
+                        debug!("sent {byte_len} bytes to {addr}");
                     }
                     Err(err) => {
                         error!("error: {err}");
